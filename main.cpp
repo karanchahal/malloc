@@ -12,5 +12,5 @@ int main() {
     m.free(chunk3);
     m.free(chunk1);
     m.printFreeList();
-   
+    
 }
