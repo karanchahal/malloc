@@ -70,6 +70,15 @@ The reason why superblocks are ordered in a LIFO manner is to improve locality o
 
 **Question:** How many superblocks of size ```x``` does local heap keep? Is there something clever we can do about this ? Having multiple objects of a lot of varied sizes could make us allocate lot of memory even as each object would demand a particular size class. I think this is a important point. Although size classes improve cache locality, it could lead to memory bloat. 
 
+## Advantages of Hoard
+
+Using a combination of superblocks and multiple heaps avoids active and passive false sharing.
+
+1. Only 1 thread will allocate memory from a superblock since a superblock is owned by one heap at a given time.
+2. Multiple threads allocating memory will allocate from different superblocks. Actively avoiding false sharing.
+3. Deallocation of memory gives a block of memory back to the same superblock, helping avoid passive false sharing.
+4. Superblock tranfer can lead to false sharing but it has not been known to occur often.
+5. Often superblocks released to the global heap are completely empty. 
 ### Pseudo Code
 ```
 malloc(sz) {
