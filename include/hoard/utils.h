@@ -1,5 +1,5 @@
 #include "imports.h"
-
+namespace utils {
 int nearestSize(int size) {
     /*
     Size classes:
@@ -24,4 +24,11 @@ int nearestSize(int size) {
    } else {
        return -1; // need to mmap directly.
    }
+}
+
+void* mmap_(int size) {
+    void* addr = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0);
+    assert(addr != MAP_FAILED);
+    return addr;
+}
 }

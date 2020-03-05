@@ -6,7 +6,7 @@ void testFirstFit() {
     Memory m(num_bytes);
     auto chunk1 = m.alloc(10);
 
-    auto chunk2 = m.alloc(50); // 10 + 50: 60
+    auto chunk2 = m.alloc(50);
     auto chunk3 = m.alloc(30);
 
     m.free(chunk2);
@@ -16,7 +16,9 @@ void testFirstFit() {
 }
 
 int main() {
-    Hoard::SuperBlock b(64);
-    Hoard::Heap h;
-    h.alloc(100);
+    Hoard::AllocatorSerial alloc;
+    auto b = alloc.malloc(28);
+    std::cout<<b.start_ptr<<std::endl;
+    std::cout<<b.super_blk<<std::endl;
+    std::cout<<b.size<<std::endl;
 }
