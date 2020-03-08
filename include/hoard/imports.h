@@ -8,4 +8,11 @@
 #include <mutex>
 #include <unordered_map>
 #include <thread>
+#include <time.h>
+#include <iomanip>  //for setprecision
+#include "utils.h"
+// Globals
+const int SUPERBLOCK_SIZE = 4096;
+std::atomic<int> parallel_i;
+std::atomic<int> serial_i;
 #endif
