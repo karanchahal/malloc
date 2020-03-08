@@ -31,4 +31,11 @@ void* mmap_(int size) {
     assert(addr != MAP_FAILED);
     return addr;
 }
+
+void unmap_(void* addr, size_t size) {
+    int r = munmap(addr, size);
+    if(r == -1) {
+        assert(false && "Munmap failed\n!");
+    }
+}
 }

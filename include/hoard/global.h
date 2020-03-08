@@ -8,9 +8,10 @@ class Block{
     void* start_ptr;
     void* super_blk;
     int size;
+    bool free = true;
     public:
     Block(void* ptr, int sz, void* super_blk_start) : start_ptr(ptr), size(sz), super_blk(super_blk_start) {};
-    Block(void* ptr) : start_ptr(ptr), big_chunk(true) {};
+    Block(void* ptr, int sz) : start_ptr(ptr), big_chunk(true), size(sz) {};
 };
 
 class SuperBlock {
@@ -23,11 +24,9 @@ class SuperBlock {
 
     SuperBlock(int size) {
         int num_blcks = total_size/size;
-        void* start_ptr = utils::mmap_(total_size); // TODO add check for sbrk fail.
-        void* super_blk_start = start_ptr;
-        if (start_ptr == (void*) -1) {
-            assert(false && "Sbrk failed");
-        }
+        size_class = size;
+        void* start_ptr = utils::mmap_(total_size);
+        void* super_blk_start = this;
 
         for(int i = 0; i < num_blcks; i++) {
             auto b = Block(start_ptr, size, super_blk_start);
@@ -37,20 +36,38 @@ class SuperBlock {
     }
 
     Block get_block() {
-        auto b = blocks[index];
-        index += 1;
-        free_size -= size_class;
-        return b;
+
+        for(int i = 0; i < blocks.size(); i++) {
+            if(blocks[i].free) {
+                blocks[i].free = false;
+                return blocks[i];
+            }
+        }
+        assert(false && "ERROR: No blocks in free superblock !");
+        return Block(0,0);
+    }
+
+    void free(Block &b) {
+        for(int i = 0;i < this->blocks.size(); i++) {
+            auto blk = this->blocks[i];
+            if(blk.start_ptr == b.start_ptr) {
+                this->blocks[i].free = true;
+                // increase super block size
+                this->free_size += this->size_class;
+                return;
+            }
+        }
+        assert(false && "ERROR: No block found to free !");
     }
 };
 
 class Heap {
 
     std::vector<SuperBlock*> super_blcks;
-    int total_size = 0; // memory being used
-    int free_size = 0; // total memory in super block
     std::unordered_map<int, std::vector<SuperBlock*>> superblk_table; // stores list of superblocks
     public:
+    int free_size = 0; // total memory in super block
+    int total_size = 0; // memory being used
     std::mutex mtx;
 
     SuperBlock* add_superblock(int size_class) {
@@ -63,11 +80,7 @@ class Heap {
 
     SuperBlock* get_superblock(int size_class) {
         if(superblk_table.find(size_class) == superblk_table.end()) {
-            auto s = new SuperBlock(size_class);
-            std::vector<SuperBlock*> l;
-            l.push_back(s);
-            superblk_table[size_class] = l;
-            return s;
+            add_superblock(size_class);
         }
 
         auto list_blks = superblk_table[size_class];
@@ -75,29 +88,38 @@ class Heap {
         int idx = -1;
         for(int i = 0; i < list_blks.size(); i++) {
             auto blk = list_blks[i];
-            if(blk->free_size < size_class) {
+            if(blk->free_size >= size_class) {
                 idx = i;
                 break;
             }
         }
 
         if(idx == -1) return NULL;
-
-        list_blks[idx]->free_size -= size_class; 
-        return list_blks[idx];
+        auto blck = list_blks[idx];
+        list_blks.erase(list_blks.begin() + idx);
+        // decrease superblock size
+        blck->free_size -= size_class; 
+        if(blck->free_size > 0) {
+            list_blks.push_back(blck);
+        }
+        return blck;
     }
-
 
     Block alloc(int size) {
         int size_class = utils::nearestSize(size);
         auto super_blk = get_superblock(size_class);
-        if(super_blk == NULL) {
-            super_blk = add_superblock(size_class);
-        }
-
         // get block from superblock
         auto blk = super_blk->get_block();
+        // decrease heap size
+        this->free_size -= size_class;
         return blk;
+    }
+
+    void free(Block &b) {
+        auto super_blk = (SuperBlock *)b.super_blk;
+        super_blk->free(b);
+        // increase heap size
+        this->free_size += b.size;
     }
 };
 
@@ -112,20 +134,34 @@ class AllocatorSerial {
         global_heap = new Heap();
     }
 
-
     Block malloc(int size) {
         if(size > S/2) {
             auto addr = utils::mmap_(size);
-            return Block(addr);
+            return Block(addr, size);
         }
-        
+
         auto heap = global_heap;
         int size_class = utils::nearestSize(size);
         heap->mtx.lock();
         auto b = heap->alloc(size);
         heap->mtx.unlock();
+        // std::cout<<"Alloced ! Total heap size: "<<heap->free_size<<std::endl;
         return b;
     }
+
+    void free(Block &b) {
+        int size = b.size;
+        if(size > S/2) {
+            utils::unmap_(b.start_ptr, b.size);
+            return;
+        }
+        auto heap = global_heap;
+        heap->mtx.lock();
+        heap->free(b);
+        heap->mtx.unlock();
+        // std::cout<<"Freed ! Total heap size: "<<heap->free_size<<std::endl;
+    }
+
 };
 
 };
