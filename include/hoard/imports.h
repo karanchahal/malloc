@@ -11,6 +11,7 @@
 #include <time.h>
 #include <iomanip>  //for setprecision
 #include "utils.h"
+#include <queue>
 // Globals
 const int SUPERBLOCK_SIZE = 4096;
 std::atomic<int> parallel_i;

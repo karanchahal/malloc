@@ -1,7 +1,6 @@
 #include "./include/memory.h"
 #include "./include/hoard/serial_alloc.h"
 #include "./include/hoard/parallel_alloc.h"
-
 void testFirstFit() {
     int num_bytes = 100;
     Memory m(num_bytes);
@@ -15,70 +14,6 @@ void testFirstFit() {
     m.printFreeList();
 }
 
-void alloc(Hoard::AllocatorSerial *memory) {
-    int size = 32;
-    auto b = memory->malloc(size);
-    auto c = memory->malloc(size);
-    auto d = memory->malloc(size);
-    auto e = memory->malloc(size);
-    auto f = memory->malloc(size);
-    auto g = memory->malloc(size);
-}
-
-void allocParallel(Hoard::AllocatorParallel *memory) {
-    int size = 32;
-    auto b = memory->malloc(size);
-    auto c = memory->malloc(size);
-    auto d = memory->malloc(size);
-    auto e = memory->malloc(size);
-    auto f = memory->malloc(size);
-    auto g = memory->malloc(size);
-}
-
-void testMultipleThreads(int num_threads) {
-    Hoard::AllocatorSerial mem;
-    vector<std::thread> threads;
-    clock_t start, end; 
-    start = clock();
-    for(int i = 0; i < num_threads ; i++) {
-        threads.push_back(std::thread(alloc, &mem));
-    }
-    
-    for(int i = 0; i < num_threads ; i++) {
-        threads[i].join();
-    }
-    end = clock();
-    double time_taken = double(end - start) /  double(CLOCKS_PER_SEC); 
-    std::cout<<"Time taken for sequential allocator "<< time_taken << std::setprecision(10)<<" sec"<<std::endl;
-}
-
-
-
-void testMultipleThreadsParallel(int num_threads) {
-    Hoard::Heap global_heap;
-    vector<std::thread> threads;
-    vector<Hoard::AllocatorParallel*> mems;
-    clock_t start, end; 
-
-    for(int i = 0; i < num_threads ; i++) {
-        auto mem = new Hoard::AllocatorParallel(&global_heap);
-        mems.push_back(mem);
-    }
-
-    start = clock();
-
-    for(int i = 0; i < num_threads ; i++) {
-        auto mem = mems[i];
-        threads.push_back(std::thread(allocParallel, mem));
-    }
-    
-    for(int i = 0; i < num_threads ; i++) {
-        threads[i].join();
-    }
-    end = clock();
-    double time_taken = double(end - start) /  double(CLOCKS_PER_SEC); 
-    std::cout<<"Time taken for parallel allocator "<< time_taken << std::setprecision(10)<<" sec"<<std::endl;
-}
 
 void testSerial(int num_times) {
     Hoard::AllocatorSerial mem;
@@ -86,7 +21,7 @@ void testSerial(int num_times) {
 
     start = clock();
     for(int i = 0; i < num_times; i++) {
-        alloc(&mem);
+        mem.malloc(32);
     }
 
     end = clock();
@@ -102,8 +37,75 @@ void simpleMemTest() {
     alloc.free(b);
 }
 
+
+void poll(Hoard::AllocatorParallel* mem, int num_times) {
+    for(int i = 0; i < num_times; i++) {
+        mem->malloc(32);
+    }
+}
+
+
+void pollSerial(Hoard::AllocatorSerial* mem, int num_times) {
+    for(int i = 0; i < num_times; i++) {
+        mem->malloc(32);
+    }
+}
+
+void testParallel(int total_calls) {
+    int num_threads = 8;
+    int num_each = total_calls/num_threads;
+    clock_t start, end; 
+    Hoard::Heap global_heap;
+    vector<Hoard::AllocatorParallel*> mems;
+    vector<std::thread> threads;
+
+    for(int i = 0; i < num_threads ; i++) {
+        auto mem = new Hoard::AllocatorParallel(&global_heap);
+        mems.push_back(mem);
+    }
+    
+    start = clock();
+    for(int i = 0; i < num_threads ; i++) {
+        auto mem = mems[i];
+        threads.push_back(std::thread(poll, mem, num_each));
+    }
+
+    for(int i = 0; i < num_threads ; i++) {
+        threads[i].join();
+    }
+    end = clock();
+    double time_taken = double(end - start) /  double(CLOCKS_PER_SEC); 
+    std::cout<<"Time taken for parallel threaded allocator "<< time_taken << std::setprecision(10)<<" sec"<<std::endl;
+
+}
+
+
+
+void testThreadedSerial(int total_calls) {
+    int num_threads = 8;
+    int num_each = total_calls/num_threads;
+    clock_t start, end; 
+    Hoard::AllocatorSerial mem;
+    vector<std::thread> threads;
+    
+    start = clock();
+    for(int i = 0; i < num_threads ; i++) {
+        threads.push_back(std::thread(pollSerial, &mem, num_each));
+    }
+
+    for(int i = 0; i < num_threads ; i++) {
+        threads[i].join();
+    }
+
+    end = clock();
+    double time_taken = double(end - start) /  double(CLOCKS_PER_SEC); 
+    std::cout<<"Time taken for serial threaded allocator "<< time_taken << std::setprecision(10)<<" sec"<<std::endl;
+
+}
+
 int main() {
-    testSerial(500);
-    testMultipleThreads(5000);
-    testMultipleThreadsParallel(500);
+
+    testParallel(100000);
+    testThreadedSerial(50000);
+    testSerial(100000);
 }
