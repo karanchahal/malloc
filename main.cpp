@@ -1,6 +1,8 @@
 #include "./include/memory.h"
 #include "./include/hoard/serial_alloc.h"
 #include "./include/hoard/parallel_alloc.h"
+// #include <malloc.h>
+
 void testFirstFit() {
     int num_bytes = 100;
     Memory m(num_bytes);
@@ -18,12 +20,10 @@ void testFirstFit() {
 void testSerial(int num_times) {
     Hoard::AllocatorSerial mem;
     clock_t start, end; 
-
     start = clock();
     for(int i = 0; i < num_times; i++) {
         mem.malloc(32);
     }
-
     end = clock();
     double time_taken = double(end - start) /  double(CLOCKS_PER_SEC); 
     std::cout<<"Time taken for serial no threading "<< time_taken << std::setprecision(10)<<" sec"<<std::endl;
@@ -78,7 +78,6 @@ void testParallel(int total_calls) {
     std::cout<<"Time taken for parallel threaded allocator "<< time_taken << std::setprecision(10)<<" sec"<<std::endl;
 
 }
-
 
 
 void testThreadedSerial(int total_calls) {
