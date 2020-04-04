@@ -1,6 +1,6 @@
 #include <iostream>
 #include <vector>
-
+#include <algorithm>
 using namespace std;
 
 struct Unit {
@@ -73,9 +73,9 @@ class Memory {
 
         // Analyse free list and intelligently merge memory chunks
         void compact() {
-            sort(free_chunks.begin(), free_chunks.end(), [](Unit &one, Unit &two) {
-                return one.start < two.start;
-            });
+            // sort(free_chunks.begin(), free_chunks.end(), [](Unit &one, Unit &two) {
+            //     return one.start < two.start;
+            // });
 
             int n = free_chunks.size();
             vector<Unit> new_list;

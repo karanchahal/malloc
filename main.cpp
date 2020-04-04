@@ -21,6 +21,7 @@ void testSerial(int num_times) {
     Hoard::AllocatorSerial mem;
     clock_t start, end; 
     start = clock();
+    // mallopt(M_ARENA_MAX, 1);
     for(int i = 0; i < num_times; i++) {
         mem.malloc(32);
     }
@@ -52,7 +53,7 @@ void pollSerial(Hoard::AllocatorSerial* mem, int num_times) {
 }
 
 void testParallel(int total_calls) {
-    int num_threads = 8;
+    int num_threads = 4;
     int num_each = total_calls/num_threads;
     clock_t start, end; 
     Hoard::Heap global_heap;
@@ -81,7 +82,7 @@ void testParallel(int total_calls) {
 
 
 void testThreadedSerial(int total_calls) {
-    int num_threads = 8;
+    int num_threads = 4;
     int num_each = total_calls/num_threads;
     clock_t start, end; 
     Hoard::AllocatorSerial mem;
@@ -105,6 +106,24 @@ void testThreadedSerial(int total_calls) {
 int main() {
 
     testParallel(100000);
-    testThreadedSerial(50000);
-    testSerial(100000);
+    std::cout<<"Loads done by global heap: "<<Stats::load_from_global<<std::endl;
+    std::cout<<"Loads done by local heap: "<<Stats::load_from_local<<std::endl;
+    auto global_heap_time = double(Stats::global_heap_access_time) / (double(Stats::load_from_global) * double(CLOCKS_PER_SEC));
+    auto local_heap_time = double(Stats::local_heap_access_time) / (double(Stats::load_from_local) * double(CLOCKS_PER_SEC));
+
+    std::cout<<"The time taken in secs by global heap access time "<<global_heap_time<<std::endl;
+    std::cout<<"The time taken in secs by local heap access time "<<local_heap_time<<std::endl;
+    
+    std::cout<<"The time taken by global heap access time in clock cyles: "<<double(Stats::global_heap_access_time) / (double(Stats::load_from_global))<<std::endl;
+    std::cout<<"The time taken by local heap access time in clock cyles: "<<double(Stats::local_heap_access_time) / (double(Stats::load_from_local))<<std::endl;
+
+    std::cout<<"The factor by which global heap is slower than local heap: "<< global_heap_time / local_heap_time <<std::endl;
+
+    std::cout<<"The number of system calls are: "<<Stats::num_sys_call<<std::endl;
+    std::cout<<"The avg time taken by mmap in clock cyles: "<< double(Stats::mmap_time) / double(Stats::num_sys_call)<< std::endl;
+    Stats::num_sys_call = 0;
+    testThreadedSerial(100000);
+    std::cout<<"Loads done by local heap is: "<<Stats::serial_i<<std::endl;
+    // testSerial(100000);
+
 }

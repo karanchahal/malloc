@@ -14,8 +14,19 @@
 #include <queue>
 #include <stdlib.h>
 #include <stdio.h>
-// Globals
+#include <assert.h>
+#include <atomic>
+#include <algorithm>
 const int SUPERBLOCK_SIZE = 4096;
-std::atomic<int> parallel_i;
+namespace Stats {
+std::atomic<int> load_from_global;
+std::atomic<int> load_from_local;
 std::atomic<int> serial_i;
+std::atomic<long long> local_heap_access_time;
+std::atomic<long long> global_heap_access_time;
+std::atomic<long long> global_heap_time;
+std::atomic<long long> local_heap_time;
+};
+
+
 #endif
