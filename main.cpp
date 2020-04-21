@@ -1,8 +1,7 @@
 #include "./include/memory.h"
 #include "./include/hoard/serial_alloc.h"
 #include "./include/hoard/parallel_alloc.h"
-// #include <malloc.h>
-
+#include "./include/tcmalloc/header.h"
 void testFirstFit() {
     int num_bytes = 100;
     Memory m(num_bytes);
@@ -103,8 +102,7 @@ void testThreadedSerial(int total_calls) {
 
 }
 
-int main() {
-
+void testHoard() {
     testParallel(100000);
     std::cout<<"Loads done by global heap: "<<Stats::load_from_global<<std::endl;
     std::cout<<"Loads done by local heap: "<<Stats::load_from_local<<std::endl;
@@ -123,7 +121,30 @@ int main() {
     std::cout<<"The avg time taken by mmap in clock cyles: "<< double(Stats::mmap_time) / double(Stats::num_sys_call)<< std::endl;
     Stats::num_sys_call = 0;
     testThreadedSerial(100000);
-    std::cout<<"Loads done by local heap is: "<<Stats::serial_i<<std::endl;
-    // testSerial(100000);
+     // testSerial(100000);
+}
 
+struct span_list {
+    uintptr_t span;
+    uintptr_t next;
+};
+
+void testTcMalloc() {
+
+    uintptr_t span1 = tcmalloc::makeSpan(1);
+    uintptr_t span2 = tcmalloc::makeSpan(1);
+    uintptr_t span3 = tcmalloc::makeSpan(1);
+
+    tcmalloc::carveSpan(span1, 32);
+
+    // tcmalloc::addToCentralList(span1);
+    // tcmalloc::addToCentralList(span2);
+
+    // tcmalloc::addSpan(span1);
+    // uintptr_t rand_addr = span1 + 4096 + 128;
+    // tcmalloc::getSpan(rand_addr);
+}
+
+int main() {
+    testTcMalloc();
 }
