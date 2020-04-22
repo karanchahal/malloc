@@ -129,6 +129,10 @@ struct span_list {
     uintptr_t next;
 };
 
+void poll_tc_malloc() {
+    // cout<<std::this_thread::get_id()<<endl;
+}
+
 void testTcMalloc() {
 
     uintptr_t span1 = tcmalloc::makeSpan(1);
@@ -137,10 +141,19 @@ void testTcMalloc() {
 
     tcmalloc::carveSpan(span1, 32);
 
+    uintptr_t addr = (uintptr_t)tcmalloc::alloc(4001);
+
+    uintptr_t addr2 = (uintptr_t)tcmalloc::alloc(8);
+    uintptr_t addr3 = (uintptr_t)tcmalloc::alloc(8);
+    // cout<<std::this_thread::get_id()<<endl;
+    auto t = std::thread(poll_tc_malloc);
+
+    t.join();
+
     // tcmalloc::addToCentralList(span1);
     // tcmalloc::addToCentralList(span2);
 
-    // tcmalloc::addSpan(span1);
+    // tcmalloc::addToPageMap(span1);
     // uintptr_t rand_addr = span1 + 4096 + 128;
     // tcmalloc::getSpan(rand_addr);
 }
