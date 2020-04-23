@@ -47,40 +47,46 @@ uintptr_t small_alloc(int size) {
 
 
     // check local free list
+    // cout<<"Going outside lock"<<endl;
     span = getSpanFromLocal(ind);
 
     if(span != NULL) {
+        // cout<<"Out lock"<<endl;
         uintptr_t addr = getObjectFromSpan(span);
         return addr;
     }
-
     mtx.lock();
 
     // check global free list
     span = getSpanFromGlobal(ind);
 
+    if(span != NULL) {
+        cout<<"Whoa !"<<endl; // will not happen as we dont add anything 
+    }
     // nothing found in central free list or local freelist
-    for(int i = 0; i < 10; i++) {
+    for(int i = 0; i < TOTAL_PAGES; i++) {
         if(pageheap[i] != NULL) {
             span = popPageHeap(i);
             popped = true;
+            cout<<"yo"<<endl;
             break;
         }
     }
+
     
     int num_pages = 1;
     if(!popped) {
-        span = getSpan(num_pages);
+        span = getSpan(num_pages); // has a call to global data struct
     }
+
+    mtx.unlock();
 
     carveSpan(span, sz_class);
     span_meta* meta = (span_meta *)span;
     // add to thread local freelist
 
-
     addSpanToLocalList(span, ind);
-    mtx.unlock();
-    
+
     uintptr_t addr = getObjectFromSpan(span);
     return addr;
 }

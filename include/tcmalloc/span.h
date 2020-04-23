@@ -18,9 +18,13 @@ void carveSpan(uintptr_t span, int sz_class) {
     int header_sz = sizeof(list_obj)*total_elems;
 
 
-    uintptr_t start_addr = (uintptr_t)utils::mmap_(header_sz);
+    uintptr_t linked_list_start = (uintptr_t)utils::mmap_(header_sz);
+    uintptr_t start_addr = meta->start_addr;
+    if(linked_list_start == NULL) {
+        cout<<"Fuck fuck fuck!"<<endl;
+    }
 
-    meta->head = (list_obj *)(start_addr);
+    meta->head = (list_obj *)(linked_list_start);
 
     // fill in linked list
     list_obj* head = meta->head;
@@ -48,8 +52,14 @@ uintptr_t makeSpan(int num_pages) {
     // header_sz += page_sz - header_sz % page_sz; // go to next offset
 
     uintptr_t addr = (uintptr_t)utils::mmap_(page_sz*num_pages);
-    span_meta* meta = (span_meta *) utils::mmap_(sizeof(span_meta));
+    if(addr == NULL) {
+        cout<<"Fuck !"<<endl;
+    }
 
+    span_meta* meta = (span_meta *) utils::mmap_(sizeof(span_meta));
+    if(meta == NULL) {
+        cout<<"Holy shit !"<<endl;
+    }
     meta->page_sz = page_sz;
     meta->num_pages = num_pages;
     meta->allocated = false;
@@ -59,7 +69,7 @@ uintptr_t makeSpan(int num_pages) {
 }
 
 // Get span from address
-uintptr_t getSpan(uintptr_t addr) {
+uintptr_t addr2Span(uintptr_t addr) {
     uintptr_t offset = addr - addr % page_sz; // get to page offset
     uintptr_t span = pagemap[offset];
     return span;
@@ -94,7 +104,7 @@ uintptr_t getObjectFromSpan(uintptr_t span) {
         assert("No mem available" && false);
         return NULL; // make compiler happy
     } else {
-        auto new_head = (list_obj *)meta->head->next;
+        list_obj* new_head = (list_obj *)meta->head->next;
         uintptr_t addr = meta->head->addr;
         meta->head = new_head;
         meta->elems--;

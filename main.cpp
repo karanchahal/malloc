@@ -17,12 +17,10 @@ void testFirstFit() {
 
 
 void testSerial(int num_times) {
-    Hoard::AllocatorSerial mem;
     clock_t start, end; 
     start = clock();
-    // mallopt(M_ARENA_MAX, 1);
     for(int i = 0; i < num_times; i++) {
-        mem.malloc(32);
+        malloc(32);
     }
     end = clock();
     double time_taken = double(end - start) /  double(CLOCKS_PER_SEC); 
@@ -54,6 +52,12 @@ void pollSerial(Hoard::AllocatorSerial* mem, int num_times) {
 void pollTcMalloc(int num_times) {
     for(int i = 0; i < num_times; i++) {
        tcmalloc::alloc(32);
+    }
+}
+
+void pollOrigMalloc(int num_times) {
+    for(int i = 0; i < num_times; i++) {
+       malloc(32);
     }
 }
 
@@ -148,6 +152,25 @@ void testParallelTcMalloc(int total_calls) {
     std::cout<<"Time taken for parallel threaded TC Malloc allocator "<< time_taken << std::setprecision(10)<<" sec"<<std::endl;
 }
 
+void testParallelOrigMalloc(int total_calls) {
+    int num_threads = 4;
+    int num_each = total_calls/num_threads;
+    clock_t start, end; 
+    vector<std::thread> threads;
+
+    start = clock();
+    for(int i = 0; i < num_threads ; i++) {
+        threads.push_back(std::thread(pollOrigMalloc, num_each));
+    }
+
+    for(int i = 0; i < num_threads ; i++) {
+        threads[i].join();
+    }
+    end = clock();
+    double time_taken = double(end - start) /  double(CLOCKS_PER_SEC); 
+    std::cout<<"Time taken for Original glib threaded TC Malloc allocator "<< time_taken << std::setprecision(10)<<" sec"<<std::endl;
+}
+
 void testTcMalloc() {
 
     uintptr_t span1 = tcmalloc::makeSpan(1);
@@ -160,8 +183,9 @@ void testTcMalloc() {
 
     uintptr_t addr2 = (uintptr_t)tcmalloc::alloc(8);
     uintptr_t addr3 = (uintptr_t)tcmalloc::alloc(8);
-    testParallelTcMalloc(1000);
-    testParallel(1000);
+    testParallelTcMalloc(100000);
+    testParallel(100000);
+    testParallelOrigMalloc(100000);
     // cout<<std::this_thread::get_id()<<endl;
 
 
