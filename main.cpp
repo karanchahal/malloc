@@ -1,7 +1,7 @@
 #include "./include/memory.h"
 #include "./include/hoard/serial_alloc.h"
 #include "./include/hoard/parallel_alloc.h"
-#include "./include/tcmalloc/header.h"
+#include "./include/tcmalloc/main.h"
 void testFirstFit() {
     int num_bytes = 100;
     Memory m(num_bytes);
@@ -51,6 +51,12 @@ void pollSerial(Hoard::AllocatorSerial* mem, int num_times) {
     }
 }
 
+void pollTcMalloc(int num_times) {
+    for(int i = 0; i < num_times; i++) {
+       tcmalloc::alloc(32);
+    }
+}
+
 void testParallel(int total_calls) {
     int num_threads = 4;
     int num_each = total_calls/num_threads;
@@ -76,7 +82,6 @@ void testParallel(int total_calls) {
     end = clock();
     double time_taken = double(end - start) /  double(CLOCKS_PER_SEC); 
     std::cout<<"Time taken for parallel threaded allocator "<< time_taken << std::setprecision(10)<<" sec"<<std::endl;
-
 }
 
 
@@ -124,13 +129,23 @@ void testHoard() {
      // testSerial(100000);
 }
 
-struct span_list {
-    uintptr_t span;
-    uintptr_t next;
-};
+void testParallelTcMalloc(int total_calls) {
+    int num_threads = 4;
+    int num_each = total_calls/num_threads;
+    clock_t start, end; 
+    vector<std::thread> threads;
 
-void poll_tc_malloc() {
-    // cout<<std::this_thread::get_id()<<endl;
+    start = clock();
+    for(int i = 0; i < num_threads ; i++) {
+        threads.push_back(std::thread(pollTcMalloc, num_each));
+    }
+
+    for(int i = 0; i < num_threads ; i++) {
+        threads[i].join();
+    }
+    end = clock();
+    double time_taken = double(end - start) /  double(CLOCKS_PER_SEC); 
+    std::cout<<"Time taken for parallel threaded TC Malloc allocator "<< time_taken << std::setprecision(10)<<" sec"<<std::endl;
 }
 
 void testTcMalloc() {
@@ -145,10 +160,10 @@ void testTcMalloc() {
 
     uintptr_t addr2 = (uintptr_t)tcmalloc::alloc(8);
     uintptr_t addr3 = (uintptr_t)tcmalloc::alloc(8);
+    testParallelTcMalloc(1000);
+    testParallel(1000);
     // cout<<std::this_thread::get_id()<<endl;
-    auto t = std::thread(poll_tc_malloc);
 
-    t.join();
 
     // tcmalloc::addToCentralList(span1);
     // tcmalloc::addToCentralList(span2);

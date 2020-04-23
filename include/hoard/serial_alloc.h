@@ -30,7 +30,7 @@ class AllocatorSerial {
         int size_class = utils::nearestSize(size);
         heap->mtx.lock();
         auto b = heap->alloc(size_class);
-        Stats::serial_i += 1;
+        // Stats::serial_i += 1;
         heap->mtx.unlock();
         // std::cout<<"Alloced ! Total heap size: "<<heap->free_size<<std::endl;
         return b;

@@ -33,19 +33,19 @@ class AllocatorParallel {
 
         int size_class = utils::nearestSize(size);
         if(local_heap->free_size < size_class) {
-            Stats::load_from_global += 1;
+            // Stats::load_from_global += 1;
             long long start = clock();
             loadFromGlobal(size_class);
             long long end = clock();
             long long time_taken = (end - start);
-            Stats::global_heap_access_time += time_taken;
+            // Stats::global_heap_access_time += time_taken;
         }
-        Stats::load_from_local += 1;
+        // Stats::load_from_local += 1;
         long long start = clock();
         auto b = local_heap->alloc(size_class);
         long long end = clock();
         long long time_taken = (end - start);
-        Stats::local_heap_access_time += time_taken;
+        // Stats::local_heap_access_time += time_taken;
         return b;
     }
 
