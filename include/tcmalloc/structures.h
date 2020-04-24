@@ -7,7 +7,7 @@ namespace tcmalloc {
 
     struct list_obj {
         uintptr_t addr;
-        uintptr_t next;
+        list_obj* next;
     };
 
     struct span_obj {

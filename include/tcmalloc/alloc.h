@@ -6,7 +6,7 @@
 
 namespace tcmalloc {
 
-uintptr_t large_alloc(int size) {
+inline uintptr_t large_alloc(int size, int rank) {
     int num_pages = num_pages_needed(size);
     bool popped = false;
     uintptr_t span = NULL;
@@ -18,14 +18,14 @@ uintptr_t large_alloc(int size) {
         }
     }
     if(!popped) {
-        span = getSpan(num_pages);
+        span = getSpan(num_pages, rank);
     } else {
         span_meta* meta = (span_meta *)span;
         int n_pg = meta->num_pages;
         if(n_pg > num_pages) {
             uintptr_t new_span = splitSpan(span, num_pages);
             addToPageHeap(new_span); // add to free page heap
-            addToPageMap(new_span); // add to pagemap  
+            addToPageMap(&pagemap, new_span); // add to pagemap  
         }
     }
 
@@ -36,9 +36,7 @@ uintptr_t large_alloc(int size) {
 }
 
 
-uintptr_t small_alloc(int size) {
-
-    initLocalThreadCache();
+inline uintptr_t small_alloc(int size, int rank) {
 
     int sz_class = get_nearest_size(size);
     int ind = get_sz_class_ind(sz_class);
@@ -47,57 +45,56 @@ uintptr_t small_alloc(int size) {
 
 
     // check local free list
-    // cout<<"Going outside lock"<<endl;
-    span = getSpanFromLocal(ind);
+    span = getSpanFromLocal(ind, rank);
 
     if(span != NULL) {
-        // cout<<"Out lock"<<endl;
-        uintptr_t addr = getObjectFromSpan(span);
+        uintptr_t addr = getObjectFromSpan(span, rank);
         return addr;
     }
+
     mtx.lock();
 
     // check global free list
     span = getSpanFromGlobal(ind);
 
     if(span != NULL) {
-        cout<<"Whoa !"<<endl; // will not happen as we dont add anything 
+        // TODO
+        // pop from global
+        // put inside local
     }
+
     // nothing found in central free list or local freelist
     for(int i = 0; i < TOTAL_PAGES; i++) {
         if(pageheap[i] != NULL) {
             span = popPageHeap(i);
             popped = true;
-            cout<<"yo"<<endl;
             break;
         }
     }
 
-    
-    int num_pages = 1;
-    if(!popped) {
-        span = getSpan(num_pages); // has a call to global data struct
-    }
-
     mtx.unlock();
+    int num_pages = 5;
+    if(!popped) {
+        span = getSpan(num_pages, rank); // has a call to global data struct
+    }
 
     carveSpan(span, sz_class);
     span_meta* meta = (span_meta *)span;
     // add to thread local freelist
 
-    addSpanToLocalList(span, ind);
+    addSpanToLocalList(span, ind, rank);
 
-    uintptr_t addr = getObjectFromSpan(span);
+    uintptr_t addr = getObjectFromSpan(span, rank);
     return addr;
 }
 
 
-uintptr_t alloc(int size) {
+inline uintptr_t alloc(int size, int rank) {
     bool large_sz = isLargeAlloc(size);
     if(large_sz) {
-        return large_alloc(size);
+        return large_alloc(size, rank);
     } else {
-        return small_alloc(size);
+        return small_alloc(size ,rank);
     }
 }
 

@@ -5,7 +5,7 @@
 #define SIZES
 
 namespace tcmalloc {
-int get_sz_class_ind(int sz) {
+inline int get_sz_class_ind(int sz) {
     switch(sz) {
         case 16: return 0;
         case 32: return 1;
@@ -17,7 +17,7 @@ int get_sz_class_ind(int sz) {
     assert(false && "You fucked up");
 }
 
-int get_nearest_size(int size) {
+inline int get_nearest_size(int size) {
     if (size <= 16) {
         return 16;
     }
@@ -36,7 +36,7 @@ int get_nearest_size(int size) {
 }
 
 
-int num_pages_needed(int size) {
+inline int num_pages_needed(int size) {
     int n = size / page_sz;
     int rem = size % page_sz;
     int extra = 0;
@@ -46,7 +46,7 @@ int num_pages_needed(int size) {
     return n + rem;
 }
 
-bool isLargeAlloc(int size) {
+inline bool isLargeAlloc(int size) {
     if(size >= 256) {
         return true;
     }

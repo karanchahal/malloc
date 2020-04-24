@@ -14,15 +14,15 @@ void addToPageHeap(uintptr_t span) {
     list_obj* head = (list_obj *)pageheap[num_pages];
     list_obj *new_head = (list_obj *)utils::mmap_(sizeof(list_obj));
     new_head->addr = span;
-    new_head->next = (uintptr_t)head;
+    new_head->next = head;
     pageheap[num_pages] = (uintptr_t)new_head;
 }
 
-uintptr_t getFromPageHeap(int num_pages, int sz_class) {
+uintptr_t getFromPageHeap(int num_pages, int sz_class, int rank) {
     bool empty = true;
     if(empty) {
         // how many spans to be allocated ?
-        uintptr_t span = getSpan(num_pages);
+        uintptr_t span = getSpan(num_pages, rank);
         carveSpan(span, sz_class);
         return span;
     } else {
@@ -31,12 +31,13 @@ uintptr_t getFromPageHeap(int num_pages, int sz_class) {
 }
 
 uintptr_t popPageHeap(int i) {
-    list_obj* head = (list_obj* )pageheap[i];
+    list_obj *head = (list_obj* )pageheap[i];
     list_obj *new_head = (list_obj*)head->next;
     pageheap[i] = (uintptr_t)new_head;
-    return (uintptr_t)head;
+    uintptr_t addr = head->addr;
+    utils::unmap_(head, sizeof(list_obj));
+    return addr;
 }
-
 
 }
 

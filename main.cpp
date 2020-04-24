@@ -49,15 +49,25 @@ void pollSerial(Hoard::AllocatorSerial* mem, int num_times) {
     }
 }
 
-void pollTcMalloc(int num_times) {
+void pollTcMalloc(int num_times, int i) {
+    tcmalloc::initLocalThreadCache(i);
     for(int i = 0; i < num_times; i++) {
-       tcmalloc::alloc(32);
+       auto t = tcmalloc::alloc(32, i);
+    }
+}
+
+void pollTcMallocFree(int num_times, int rank) {
+    tcmalloc::initLocalThreadCache(rank);
+    for(int i = 0; i < num_times; i++) {
+       auto t = tcmalloc::alloc(32, rank);
+       tcmalloc::free(t,rank);
     }
 }
 
 void pollOrigMalloc(int num_times) {
     for(int i = 0; i < num_times; i++) {
-       malloc(32);
+       auto v = malloc(32);
+       free(v);
     }
 }
 
@@ -137,16 +147,18 @@ void testParallelTcMalloc(int total_calls) {
     int num_threads = 4;
     int num_each = total_calls/num_threads;
     clock_t start, end; 
-    vector<std::thread> threads;
+    vector<std::thread*> threads;
 
     start = clock();
-    for(int i = 0; i < num_threads ; i++) {
-        threads.push_back(std::thread(pollTcMalloc, num_each));
+    for(int i = 0; i < num_threads; i++) {
+        auto t = new std::thread(pollTcMallocFree, num_each, i);
+        threads.push_back(t);
     }
 
-    for(int i = 0; i < num_threads ; i++) {
-        threads[i].join();
+    for(int i = 0; i < num_threads; i++) {
+        threads[i]->join();
     }
+
     end = clock();
     double time_taken = double(end - start) /  double(CLOCKS_PER_SEC); 
     std::cout<<"Time taken for parallel threaded TC Malloc allocator "<< time_taken << std::setprecision(10)<<" sec"<<std::endl;
@@ -172,20 +184,10 @@ void testParallelOrigMalloc(int total_calls) {
 }
 
 void testTcMalloc() {
-
-    uintptr_t span1 = tcmalloc::makeSpan(1);
-    uintptr_t span2 = tcmalloc::makeSpan(1);
-    uintptr_t span3 = tcmalloc::makeSpan(1);
-
-    tcmalloc::carveSpan(span1, 32);
-
-    uintptr_t addr = (uintptr_t)tcmalloc::alloc(4001);
-
-    uintptr_t addr2 = (uintptr_t)tcmalloc::alloc(8);
-    uintptr_t addr3 = (uintptr_t)tcmalloc::alloc(8);
-    testParallelTcMalloc(100000);
-    testParallel(100000);
-    testParallelOrigMalloc(100000);
+    
+    testParallelTcMalloc(1000000);
+    // testParallel(1000000);
+    testParallelOrigMalloc(1000000);
     // cout<<std::this_thread::get_id()<<endl;
 
 
