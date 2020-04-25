@@ -2,6 +2,9 @@
 #include "./include/hoard/serial_alloc.h"
 #include "./include/hoard/parallel_alloc.h"
 #include "./include/tcmalloc/main.h"
+#include "./include/fasthoard/imports.h"
+
+
 void testFirstFit() {
     int num_bytes = 100;
     Memory m(num_bytes);
@@ -49,10 +52,10 @@ void pollSerial(Hoard::AllocatorSerial* mem, int num_times) {
     }
 }
 
-void pollTcMalloc(int num_times, int i) {
-    tcmalloc::initLocalThreadCache(i);
+void pollTcMalloc(int num_times, int rank) {
+    tcmalloc::initLocalThreadCache(rank);
     for(int i = 0; i < num_times; i++) {
-       auto t = tcmalloc::alloc(32, i);
+       auto t = tcmalloc::alloc(32, rank);
     }
 }
 
@@ -61,6 +64,14 @@ void pollTcMallocFree(int num_times, int rank) {
     for(int i = 0; i < num_times; i++) {
        auto t = tcmalloc::alloc(32, rank);
        tcmalloc::free(t,rank);
+    }
+}
+
+void pollFastHoardFree(int num_times, int rank) {
+    fasthoard::initNewHeap(rank);
+    for(int i = 0; i < num_times; i++) {
+       auto t = fasthoard::alloc(32, rank);
+       fasthoard::free(t,rank);
     }
 }
 
@@ -164,8 +175,30 @@ void testParallelTcMalloc(int total_calls) {
     std::cout<<"Time taken for parallel threaded TC Malloc allocator "<< time_taken << std::setprecision(10)<<" sec"<<std::endl;
 }
 
+
+void testParallelFastHoard(int total_calls) {
+    int num_threads = 8;
+    int num_each = total_calls/num_threads;
+    clock_t start, end; 
+    vector<std::thread*> threads;
+
+    start = clock();
+    for(int i = 0; i < num_threads; i++) {
+        auto t = new std::thread(pollFastHoardFree, num_each, i);
+        threads.push_back(t);
+    }
+
+    for(int i = 0; i < num_threads; i++) {
+        threads[i]->join();
+    }
+
+    end = clock();
+    double time_taken = double(end - start) /  double(CLOCKS_PER_SEC); 
+    std::cout<<"Time taken for parallel Hoard allocator "<< time_taken << std::setprecision(10)<<" sec"<<std::endl;
+}
+
 void testParallelOrigMalloc(int total_calls) {
-    int num_threads = 4;
+    int num_threads = 8;
     int num_each = total_calls/num_threads;
     clock_t start, end; 
     vector<std::thread> threads;
@@ -185,7 +218,9 @@ void testParallelOrigMalloc(int total_calls) {
 
 void testTcMalloc() {
     
-    testParallelTcMalloc(1000000);
+    // testParallelTcMalloc(1000000);
+    fasthoard::initGlobalHeap();
+    testParallelFastHoard(1000000);
     // testParallel(1000000);
     testParallelOrigMalloc(1000000);
     // cout<<std::this_thread::get_id()<<endl;

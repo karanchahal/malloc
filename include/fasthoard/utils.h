@@ -1,10 +1,10 @@
-#include <iostream>
 #include <assert.h>
-#include "header.h"
-#ifndef SIZES
-#define SIZES
+#include "../hoard/utils.h"
+#include "structures.h"
+#ifndef FAST_HOARD_UTILS
+#define FAST_HOARD_UTILS
 
-namespace tcmalloc {
+namespace fasthoard {
 inline int get_sz_class_ind(int sz) {
     switch(sz) {
         case 16: return 0;
@@ -21,6 +21,7 @@ inline int get_nearest_size(int size) {
     if (size <= 16) {
         return 16;
     }
+
     if(size <= 32) {
         return 32;
     }
@@ -34,7 +35,6 @@ inline int get_nearest_size(int size) {
     }
     return 256;
 }
-
 
 inline int num_pages_needed(int size) {
     int n = size / page_sz;
@@ -52,6 +52,6 @@ inline bool isLargeAlloc(int size) {
     }
     return false;
 }
-}
+};
 
 #endif

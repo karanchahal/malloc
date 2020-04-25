@@ -6,7 +6,7 @@
 
 namespace tcmalloc {
 
-inline uintptr_t large_alloc(int size, int rank) {
+uintptr_t large_alloc(int size, int rank) {
     int num_pages = num_pages_needed(size);
     bool popped = false;
     uintptr_t span = NULL;
@@ -35,8 +35,42 @@ inline uintptr_t large_alloc(int size, int rank) {
     return meta->start_addr;
 }
 
+void popFromGlobal(span_meta* meta) {
+    int ind = get_sz_class_ind(meta->sz_class);
+    list_obj* head = (list_obj *) central_list[ind];
+    uintptr_t span = (uintptr_t)meta;
+    list_obj *prev = NULL;
+    while(head->addr != span && head != NULL) {
+        prev = head;
+        head = head->next;
+    }
 
-inline uintptr_t small_alloc(int size, int rank) {
+    if(head == NULL) {
+        assert("Something is horribly wrong, should have found something" && false);
+    }
+
+    if(prev == NULL) {
+        //first ele
+        central_list[ind] = (uintptr_t)head->next;
+    } else {
+        prev->next = head->next;
+    }
+    
+}
+
+void sendToLocal(span_meta* meta, int rank) {
+    uintptr_t* thread_cache = (uintptr_t *)thread_map[rank];
+    auto local_page_map = getlocalpagemap(rank);
+    int ind = get_sz_class_ind(meta->sz_class);
+    list_obj* head = (list_obj *) thread_cache[ind];
+    list_obj* new_head = (list_obj *) utils::mmap_(sizeof(list_obj));
+    new_head->addr = (uintptr_t)meta;
+    new_head->next = head;
+    thread_cache[ind] = (uintptr_t)new_head;
+    addToPageMap(local_page_map, (uintptr_t) meta);
+}
+
+uintptr_t small_alloc(int size, int rank) {
 
     int sz_class = get_nearest_size(size);
     int ind = get_sz_class_ind(sz_class);
@@ -58,9 +92,11 @@ inline uintptr_t small_alloc(int size, int rank) {
     span = getSpanFromGlobal(ind);
 
     if(span != NULL) {
-        // TODO
-        // pop from global
-        // put inside local
+        popFromGlobal((span_meta*)span);
+        mtx.unlock();
+        sendToLocal((span_meta*)span, rank);
+        uintptr_t addr = getObjectFromSpan(span, rank);
+        return addr;
     }
 
     // nothing found in central free list or local freelist
@@ -73,7 +109,7 @@ inline uintptr_t small_alloc(int size, int rank) {
     }
 
     mtx.unlock();
-    int num_pages = 5;
+    int num_pages = 10; // TODO: principled way of selection ?
     if(!popped) {
         span = getSpan(num_pages, rank); // has a call to global data struct
     }
@@ -89,7 +125,7 @@ inline uintptr_t small_alloc(int size, int rank) {
 }
 
 
-inline uintptr_t alloc(int size, int rank) {
+uintptr_t alloc(int size, int rank) {
     bool large_sz = isLargeAlloc(size);
     if(large_sz) {
         return large_alloc(size, rank);

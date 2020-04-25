@@ -7,7 +7,7 @@
 #define CENTRALIST
 
 namespace tcmalloc {
-inline int addSpanToCentralList(uintptr_t span, int i) {
+int addSpanToCentralList(uintptr_t span, int i) {
     list_obj* head = (list_obj*)central_list[i];
     list_obj* new_head = (list_obj *)utils::mmap_(sizeof(list_obj*));
     new_head->addr = (uintptr_t)head;
@@ -15,7 +15,7 @@ inline int addSpanToCentralList(uintptr_t span, int i) {
     central_list[i] = (uintptr_t)new_head;
 }
 
-inline uintptr_t getSpanFromGlobal(int ind) {
+uintptr_t getSpanFromGlobal(int ind) {
     list_obj* head = (list_obj *)central_list[ind];
     while(head != NULL) {
         span_meta* meta = (span_meta *)head->addr;

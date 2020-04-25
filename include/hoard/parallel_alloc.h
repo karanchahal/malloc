@@ -19,7 +19,6 @@ class AllocatorParallel {
     }
 
     public:
-
     AllocatorParallel(Heap* g_heap) {
         global_heap = g_heap;
         local_heap = new Heap();

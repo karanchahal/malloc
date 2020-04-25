@@ -29,6 +29,9 @@ void addAddrToSpan(span_meta* meta, uintptr_t addr, int rank) {
 }
 
 bool shouldSendSpanBack(span_meta* meta) {
+    if(meta->elems == ((meta->num_pages*meta->page_sz)/meta->sz_class) + 1) {
+        return true;
+    }
     return false;
 }
 
@@ -48,34 +51,10 @@ void popFromLocal(span_meta* meta, int rank) {
     }
 
     if(prev == NULL) {
-        //first ele
         thread_cache[ind] = (uintptr_t)head->next;
     } else {
         prev->next = head->next;
     }
-    
-}
-
-void popFromGlobal(span_meta* meta) {
-    int ind = get_sz_class_ind(meta->sz_class);
-    list_obj* head = (list_obj *) central_list[ind];
-    uintptr_t span = (uintptr_t)meta;
-    list_obj *prev = NULL;
-    while(head->addr != span && head != NULL) {
-        prev = head;
-        head = head->next;
-    }
-
-    if(head == NULL) {
-        assert("Something is horribly wrong, should have found something" && false);
-    }
-
-    if(prev == NULL) {
-        //first ele
-        central_list[ind] = (uintptr_t)head->next;
-    } else {
-        prev->next = head->next;
-    } 
 }
 
 void sendToGlobal(span_meta* meta) {
@@ -102,9 +81,7 @@ void free(uintptr_t addr, int rank) {
 
             mtx.lock();
             sendToGlobal(meta);
-            // updatePageMap(meta);
             mtx.unlock();
-
         }
     }
 }
