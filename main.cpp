@@ -83,10 +83,10 @@ void pollOrigMalloc(int num_times) {
     }
 }
 
-void pollJEMalloc(int num_times, int index){
+void pollJEMalloc(int num_times, int int index,){
     for(int i = 0; i < num_times; i++) {
-       auto v = jemalloc::my_malloc(32, index);
-       jemalloc::my_free(v, 32);
+       auto v = jemalloc::mem_malloc(32, index);
+       jemalloc::mem_free(v, 32);
     }
 }
 
@@ -262,7 +262,7 @@ void testTcMalloc() {
 }
 
 void testJeMalloc() {
-  jemalloc::init(10);  // num_arenas
+  jemalloc::init(10, 4);  // num_arenas
   testParallelOrigMalloc(1000000);
   testParallelFastJeMalloc(1000000);
 }
