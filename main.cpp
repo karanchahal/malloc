@@ -3,6 +3,7 @@
 #include "./include/hoard/parallel_alloc.h"
 #include "./include/tcmalloc/main.h"
 #include "./include/fasthoard/imports.h"
+#include "./include/jemalloc/jemalloc.h"
 
 
 void testFirstFit() {
@@ -20,13 +21,13 @@ void testFirstFit() {
 
 
 void testSerial(int num_times) {
-    clock_t start, end; 
+    clock_t start, end;
     start = clock();
     for(int i = 0; i < num_times; i++) {
         malloc(32);
     }
     end = clock();
-    double time_taken = double(end - start) /  double(CLOCKS_PER_SEC); 
+    double time_taken = double(end - start) /  double(CLOCKS_PER_SEC);
     std::cout<<"Time taken for serial no threading "<< time_taken << std::setprecision(10)<<" sec"<<std::endl;
 }
 
@@ -82,10 +83,17 @@ void pollOrigMalloc(int num_times) {
     }
 }
 
+void pollJEMalloc(int num_times, int index){
+    for(int i = 0; i < num_times; i++) {
+       auto v = jemalloc::my_malloc(32, index);
+       jemalloc::my_free(v, 32);
+    }
+}
+
 void testParallel(int total_calls) {
     int num_threads = 4;
     int num_each = total_calls/num_threads;
-    clock_t start, end; 
+    clock_t start, end;
     Hoard::Heap global_heap;
     vector<Hoard::AllocatorParallel*> mems;
     vector<std::thread> threads;
@@ -94,7 +102,7 @@ void testParallel(int total_calls) {
         auto mem = new Hoard::AllocatorParallel(&global_heap);
         mems.push_back(mem);
     }
-    
+
     start = clock();
     for(int i = 0; i < num_threads ; i++) {
         auto mem = mems[i];
@@ -105,7 +113,7 @@ void testParallel(int total_calls) {
         threads[i].join();
     }
     end = clock();
-    double time_taken = double(end - start) /  double(CLOCKS_PER_SEC); 
+    double time_taken = double(end - start) /  double(CLOCKS_PER_SEC);
     std::cout<<"Time taken for parallel threaded allocator "<< time_taken << std::setprecision(10)<<" sec"<<std::endl;
 }
 
@@ -113,10 +121,10 @@ void testParallel(int total_calls) {
 void testThreadedSerial(int total_calls) {
     int num_threads = 4;
     int num_each = total_calls/num_threads;
-    clock_t start, end; 
+    clock_t start, end;
     Hoard::AllocatorSerial mem;
     vector<std::thread> threads;
-    
+
     start = clock();
     for(int i = 0; i < num_threads ; i++) {
         threads.push_back(std::thread(pollSerial, &mem, num_each));
@@ -127,7 +135,7 @@ void testThreadedSerial(int total_calls) {
     }
 
     end = clock();
-    double time_taken = double(end - start) /  double(CLOCKS_PER_SEC); 
+    double time_taken = double(end - start) /  double(CLOCKS_PER_SEC);
     std::cout<<"Time taken for serial threaded allocator "<< time_taken << std::setprecision(10)<<" sec"<<std::endl;
 
 }
@@ -141,7 +149,7 @@ void testHoard() {
 
     std::cout<<"The time taken in secs by global heap access time "<<global_heap_time<<std::endl;
     std::cout<<"The time taken in secs by local heap access time "<<local_heap_time<<std::endl;
-    
+
     std::cout<<"The time taken by global heap access time in clock cyles: "<<double(Stats::global_heap_access_time) / (double(Stats::load_from_global))<<std::endl;
     std::cout<<"The time taken by local heap access time in clock cyles: "<<double(Stats::local_heap_access_time) / (double(Stats::load_from_local))<<std::endl;
 
@@ -157,7 +165,7 @@ void testHoard() {
 void testParallelTcMalloc(int total_calls) {
     int num_threads = 4;
     int num_each = total_calls/num_threads;
-    clock_t start, end; 
+    clock_t start, end;
     vector<std::thread*> threads;
 
     start = clock();
@@ -171,7 +179,7 @@ void testParallelTcMalloc(int total_calls) {
     }
 
     end = clock();
-    double time_taken = double(end - start) /  double(CLOCKS_PER_SEC); 
+    double time_taken = double(end - start) /  double(CLOCKS_PER_SEC);
     std::cout<<"Time taken for parallel threaded TC Malloc allocator "<< time_taken << std::setprecision(10)<<" sec"<<std::endl;
 }
 
@@ -179,7 +187,7 @@ void testParallelTcMalloc(int total_calls) {
 void testParallelFastHoard(int total_calls) {
     int num_threads = 8;
     int num_each = total_calls/num_threads;
-    clock_t start, end; 
+    clock_t start, end;
     vector<std::thread*> threads;
 
     start = clock();
@@ -193,14 +201,14 @@ void testParallelFastHoard(int total_calls) {
     }
 
     end = clock();
-    double time_taken = double(end - start) /  double(CLOCKS_PER_SEC); 
+    double time_taken = double(end - start) /  double(CLOCKS_PER_SEC);
     std::cout<<"Time taken for parallel Hoard allocator "<< time_taken << std::setprecision(10)<<" sec"<<std::endl;
 }
 
 void testParallelOrigMalloc(int total_calls) {
     int num_threads = 8;
     int num_each = total_calls/num_threads;
-    clock_t start, end; 
+    clock_t start, end;
     vector<std::thread> threads;
 
     start = clock();
@@ -212,12 +220,31 @@ void testParallelOrigMalloc(int total_calls) {
         threads[i].join();
     }
     end = clock();
-    double time_taken = double(end - start) /  double(CLOCKS_PER_SEC); 
+    double time_taken = double(end - start) /  double(CLOCKS_PER_SEC);
     std::cout<<"Time taken for Original glib threaded TC Malloc allocator "<< time_taken << std::setprecision(10)<<" sec"<<std::endl;
 }
 
+void testParallelFastJeMalloc(int total_calls) {
+  int num_threads = 4;
+  int num_each = total_calls/num_threads;
+  vector<std::thread*> threads;
+
+  auto start = std::chrono::high_resolution_clock::now();
+  for(int i = 0; i < num_threads; i++) {
+      auto t = new std::thread(pollJEMalloc, num_each, i);
+      threads.push_back(t);
+  }
+
+  for(int i = 0; i < num_threads; i++) {
+      threads[i]->join();
+  }
+  auto end = std::chrono::high_resolution_clock::now();
+  auto time_taken = std::chrono::duration<double, std::milli>(end-start).count();
+  std::cout<<"Time taken for parallel JEMalloc allocator "<< time_taken << std::setprecision(10)<<" sec"<<std::endl;
+}
+
 void testTcMalloc() {
-    
+
     // testParallelTcMalloc(1000000);
     fasthoard::initGlobalHeap();
     testParallelFastHoard(1000000);
@@ -234,6 +261,12 @@ void testTcMalloc() {
     // tcmalloc::getSpan(rand_addr);
 }
 
+void testJeMalloc() {
+  jemalloc::init(10);  // num_arenas
+  testParallelOrigMalloc(1000000);
+  testParallelFastJeMalloc(1000000);
+}
+
 int main() {
-    testTcMalloc();
+    testJeMalloc();
 }
