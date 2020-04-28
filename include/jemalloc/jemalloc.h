@@ -48,6 +48,7 @@ namespace jemalloc{
 
 	int arena_index;
 	int num_arenas;
+	bool aslr;
 
 	#define	CHUNK_MAP_UNTOUCHED	0x80U
 	#define	CHUNK_MAP_DIRTY		0x40U
@@ -561,6 +562,15 @@ namespace jemalloc{
 		return ret;
 	}
 
+	void remove_addr(void *addr, arena_run_t *run, size_t size){
+		if(aslr){
+			arena_chunk_t *chunk = run->chunk_base_addr;
+			arena_t *arena = chunk->arena;
+			remove_run(arena, &arena->runs_allocated, run);
+			pages_unmap(addr, size);
+		}
+	}
+
 	void *arena_malloc_large(arena_t *arena, size_t size, bool zero){
 	  void *ret; // return pointer container the mapped address
 
@@ -662,6 +672,7 @@ namespace jemalloc{
 	void mem_free(void *addr, size_t size){
 		// remove the run mapping
 		arena_run_t *run = (arena_run_t*) addr;
+		remove_addr(addr, run, size);
 		// arena_chunk_t *chunk = run->chunk_base_addr;
 		// arena_t *arena = chunk->arena;
 		// remove_run(arena, &arena->runs_allocated, run);
@@ -740,6 +751,7 @@ namespace jemalloc{
 
 		long result = sysconf(_SC_PAGESIZE);
 		assert(result != -1);
+		aslr=false;
 
 		pagesize_mask = result - 1;
 
