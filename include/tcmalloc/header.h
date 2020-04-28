@@ -10,9 +10,10 @@ int TOTAL_PAGES = 10;
 int size_classes = 5;
 uintptr_t central_list[5];
 unordered_map<uintptr_t, uintptr_t> pagemap;
-uintptr_t pageheap[10];
+list_obj * pageheap[10];
 uintptr_t thread_map[1000]; // large value 
 list_obj* local_buffers[1000];
+list_obj* local_buf_2[1000];
 unordered_map<uintptr_t, uintptr_t>* localmaps[1000];
 std::mutex mtx;
 }

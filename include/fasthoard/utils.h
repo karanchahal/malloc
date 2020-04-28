@@ -1,5 +1,5 @@
 #include <assert.h>
-#include "../hoard/utils.h"
+#include "../stats/hoard.h"
 #include "structures.h"
 #ifndef FAST_HOARD_UTILS
 #define FAST_HOARD_UTILS

@@ -1,5 +1,5 @@
 #include "utils.h"
-#include "../hoard/utils.h"
+#include "../stats/hoard.h"
 #include "structures.h"
 
 #ifndef FASTHOARD_ALLOC
@@ -8,6 +8,10 @@
 namespace fasthoard {
 
     superblock* make_super_block(int size_class) {
+
+        // hoardStats::n_make_super_block++;
+        // auto start = std::chrono::high_resolution_clock::now();
+
         int total_eles = page_sz / size_class;
         uintptr_t start_addr = (uintptr_t) utils::mmap_(page_sz + sizeof(superblock) + sizeof(list_obj)*total_eles);
         superblock* superblk = (superblock*) (start_addr + page_sz);
@@ -26,10 +30,19 @@ namespace fasthoard {
             obj = obj->next;
             start_addr = start_addr + size_class;
         }
+
+        // auto end = std::chrono::high_resolution_clock::now();
+        // auto time_taken = std::chrono::duration<double, std::nano>(end-start).count();
+        // hoardStats::time_make_super_block += time_taken;
+
         return superblk;
     }
 
     uintptr_t get_block(superblock* superblk) { // subtracts from superblk
+
+        // hoardStats::n_get_block++;
+        // auto start = std::chrono::high_resolution_clock::now();
+
         if(superblk->free_size == 0 || superblk->free_blcks == NULL) {
             assert("Error, no space in superblock" && false);
         }
@@ -40,10 +53,18 @@ namespace fasthoard {
         obj->next = superblk->free_bufs;
         superblk->free_bufs = obj;
         superblk->free_size -= superblk->size_class;
+
+        // auto end = std::chrono::high_resolution_clock::now();
+        // auto time_taken = std::chrono::duration<double, std::nano>(end-start).count();
+        // hoardStats::time_get_block += time_taken;
+
         return addr;
     }
 
     superblock* put_block(uintptr_t blk) { // ads to superblk
+
+        // hoardStats::n_put_block++;
+        // auto start = std::chrono::high_resolution_clock::now();
 
         auto start_addr = blk - blk%page_sz;
         // get size_cls somehow
@@ -55,20 +76,40 @@ namespace fasthoard {
         head->next = superblk->free_blcks;
         superblk->free_blcks = head;
         superblk->free_size += superblk->size_class;
+
+        // auto end = std::chrono::high_resolution_clock::now();
+        // auto time_taken = std::chrono::duration<double, std::nano>(end-start).count();
+        // hoardStats::time_put_block += time_taken;
+
         return superblk;
     }
 
     void initNewHeap(int rank) {
+        // hoardStats::n_initNewHeap++;
+        // auto start = std::chrono::high_resolution_clock::now();
+
         localheaps[rank] = (heap*) utils::mmap_(sizeof(heap));
         for(int i = 0; i < size_classes; i++) {
             localheaps[rank]->superblks[i] = NULL;
         }
+
+        // auto end = std::chrono::high_resolution_clock::now();
+        // auto time_taken = std::chrono::duration<double, std::nano>(end-start).count();
+        // hoardStats::time_initNewHeap += time_taken;
+
     }
 
-     void initGlobalHeap() {
+    void initGlobalHeap() {
+        // hoardStats::n_initGlobalHeap++;
+        // auto start = std::chrono::high_resolution_clock::now();
+
         for(int i = 0; i < size_classes; i++) {
             global_heap.superblks[i] = NULL;
         }
+
+        // auto end = std::chrono::high_resolution_clock::now();
+        // auto time_taken = std::chrono::duration<double, std::nano>(end-start).count();
+        // hoardStats::time_initGlobalHeap += time_taken;
     }
 
 };

@@ -2,6 +2,8 @@
 #ifndef TCMALLOC_IMPORTS
 #define TCMALLOC_IMPORTS
 
+#define NULL_ZERO 0
+
 #include "header.h"
 #include "sizes.h"
 #include "structures.h"

@@ -10,11 +10,6 @@ namespace tcmalloc {
         list_obj* next;
     };
 
-    struct span_obj {
-        uintptr_t addr;
-        uintptr_t next;
-    };
-
     struct span_meta {
         int page_sz; // int is 4 bytes
         int sz_class;
@@ -25,6 +20,7 @@ namespace tcmalloc {
         bool allocated;
         list_obj* head; //head of linked list
     };
+
 }
 
 #endif

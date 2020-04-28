@@ -1,6 +1,6 @@
 #include <unordered_map>
 #include <iostream>
-#include "../hoard/utils.h"
+#include "../stats/hoard.h"
 using namespace std;
 
 #ifndef FASTHOARD_STRUCT
@@ -15,7 +15,6 @@ struct list_obj {
     uintptr_t addr;
     list_obj* next;
 };
-
 
 struct list_super {
     superblock* addr;
@@ -38,6 +37,7 @@ struct heap {
     int blk_free_sizes[size_classes];
     int free_size = 0;
     int total_size = 0;
+    list_super* free_list_nodes = NULL;
 };
 
 
