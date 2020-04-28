@@ -331,7 +331,7 @@ void testTcMalloc() {
     int prob_size = 100000;
     auto ans = make_random_test(prob_size, n_th);
 
-    cout<<"For "<<n_th<<" NUmber of threads:"<<endl;
+    cout<<"For "<<n_th<<" Number of threads:"<<endl;
     testRandParallelFastHoard(prob_size, n_th, ans, USE_HOARD);
 
     testRandParallelFastHoard(prob_size, n_th, ans, USE_ORIG);
